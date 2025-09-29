@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Animated, Image, Pressable, StatusBar, TextInput, View } from 'react-native';
+import { Animated, Image, Pressable, StatusBar, TextInput, View, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
   BottomSheetModal,
@@ -8,6 +8,8 @@ import {
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getAuth } from '@react-native-firebase/auth';
+import { getApp } from '@react-native-firebase/app';
 
 import { EMAIL_REGEX } from '@/constants';
 import { EyeIcon, EyeSlash } from '@/svg-icons';
@@ -16,6 +18,7 @@ import i18n from '@/i18n';
 import { resetAuth } from '@/store/auth/authSlice';
 import { authActions } from '@/store/auth/authActions';
 import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 
 import {
   BottomSheetBackdrop,
@@ -41,6 +44,7 @@ type FormData = {
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
+  const [isFirebaseLoading, setIsFirebaseLoading] = useState(false);
   const {
     control,
     handleSubmit,
@@ -62,6 +66,8 @@ const LoginScreen = () => {
 
   const dispatch = useAppDispatch();
   const isLoggingIn = useAppSelector(selectIsLoggingIn);
+  const { signInWithEmailAndPassword, signInWithGoogle, sendPasswordResetEmail } =
+    useFirebaseAuth();
 
   const installationUrl = useAppSelector(selectInstallationUrl);
   const baseUrl = useAppSelector(selectBaseUrl);
@@ -81,28 +87,142 @@ const LoginScreen = () => {
     }
   }, [installationUrl, navigation, dispatch]);
 
-  const onSubmit = async (data: FormData) => {
-    const { email, password } = data;
-    // Clear any existing auth state before login
-    dispatch(resetAuth());
-
+  const handleFirebaseAuthSuccess = async (firebaseUser: {
+    email: string | null;
+    uid: string;
+    displayName: string | null;
+    emailVerified: boolean;
+  }) => {
     try {
-      const result = await dispatch(authActions.login({ email, password })).unwrap();
-
-      // Check if MFA is required in the response
-      if ('mfa_required' in result && result.mfa_required) {
-        // Navigate directly to MFA screen with the token
-        navigation.navigate('MFAScreen' as never);
+      // Get Firebase ID token from current user
+      const currentUser = getAuth(getApp()).currentUser;
+      if (!currentUser) {
+        throw new Error('No current user found');
       }
-      // If MFA not required, the auth state will be updated and
-      // the app will automatically navigate to the dashboard
-    } catch {
-      // Login error is handled by Redux and displayed in the UI
+
+      const idToken = await currentUser.getIdToken();
+
+      // Alert Firebase token for debugging/testing
+      Alert.alert(
+        'Firebase Auth Success',
+        `User: ${firebaseUser.email}\nUID: ${firebaseUser.uid}\nToken: ${idToken.substring(0, 50)}...`,
+        [
+          {
+            text: 'Copy Token',
+            onPress: () => {
+              // If you have clipboard library, you can copy the token
+              console.log('Full Firebase ID Token:', idToken);
+            },
+          },
+          { text: 'Continue', style: 'default' },
+        ],
+      );
+
+      // Continue with backend authentication
+      return idToken;
+    } catch (error) {
+      console.error('Error getting Firebase token:', error);
+      Alert.alert('Error', 'Failed to get Firebase token');
+      return null;
     }
   };
 
-  const openResetPassword = () => {
-    navigation.navigate('ResetPassword' as never);
+  const onSubmit = async (data: FormData) => {
+    const { email, password } = data;
+    setIsFirebaseLoading(true);
+
+    try {
+      // Try Firebase Auth first
+      const firebaseResult = await signInWithEmailAndPassword(email, password);
+
+      if (firebaseResult.user) {
+        // Handle Firebase auth success and get token
+        const idToken = await handleFirebaseAuthSuccess(firebaseResult.user);
+
+        if (!idToken) {
+          return; // Exit if token retrieval failed
+        }
+
+        // Firebase auth successful, now try to authenticate with your backend
+        // Clear any existing auth state before login
+        dispatch(resetAuth());
+
+        try {
+          // Try to login with your existing backend using the same credentials
+          // This maintains compatibility with your existing system
+          const result = await dispatch(authActions.login({ email, password })).unwrap();
+
+          // Check if MFA is required in the response
+          if ('mfa_required' in result && result.mfa_required) {
+            // Navigate directly to MFA screen with the token
+            navigation.navigate('MFAScreen' as never);
+          }
+          // If MFA not required, the auth state will be updated and
+          // the app will automatically navigate to the dashboard
+        } catch (backendError) {
+          // Backend login failed, but Firebase auth succeeded
+          // You can decide how to handle this case
+          console.warn('Backend login failed after Firebase auth:', backendError);
+          Alert.alert(
+            'Authentication Error',
+            'Firebase authentication succeeded, but backend authentication failed. Please contact support.',
+          );
+        }
+      }
+    } catch (error) {
+      // Firebase auth failed
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to authenticate with Firebase';
+      Alert.alert('Login Failed', errorMessage);
+    } finally {
+      setIsFirebaseLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsFirebaseLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result.user) {
+        // Handle Firebase auth success and get token
+        const idToken = await handleFirebaseAuthSuccess(result.user);
+
+        if (idToken) {
+          // You might want to create a user in your backend or link accounts
+          // For now, just show success message
+          console.log('Google Sign-In successful with Firebase token');
+          // Navigate to dashboard or handle as needed
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      Alert.alert('Google Sign-In Failed', errorMessage);
+    } finally {
+      setIsFirebaseLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    // Get email from form or show input dialog
+    Alert.prompt(
+      'Reset Password',
+      'Enter your email address to receive password reset instructions:',
+      async email => {
+        if (email && EMAIL_REGEX.test(email)) {
+          try {
+            await sendPasswordResetEmail(email);
+            Alert.alert('Success', 'Password reset email sent! Check your inbox.');
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Failed to send password reset email';
+            Alert.alert('Error', errorMessage);
+          }
+        } else {
+          Alert.alert('Invalid Email', 'Please enter a valid email address');
+        }
+      },
+      'plain-text',
+    );
   };
 
   const openConfigInstallationURL = () => {
@@ -226,16 +346,33 @@ const LoginScreen = () => {
             name="password"
           />
 
-          <Pressable style={tailwind.style('pt-1 mb-8')} onPress={openResetPassword}>
+          <Pressable style={tailwind.style('pt-1 mb-4')} onPress={handleForgotPassword}>
             <Animated.Text style={tailwind.style('text-blue-800 font-inter-medium-24 text-right')}>
               {i18n.t('LOGIN.FORGOT_PASSWORD')}
             </Animated.Text>
           </Pressable>
 
           <Button
-            text={isLoggingIn ? i18n.t('LOGIN.LOGIN_LOADING') : i18n.t('LOGIN.LOGIN')}
+            text={
+              isLoggingIn || isFirebaseLoading
+                ? i18n.t('LOGIN.LOGIN_LOADING')
+                : i18n.t('LOGIN.LOGIN')
+            }
             handlePress={handleSubmit(onSubmit)}
           />
+
+          <View style={tailwind.style('mt-4 gap-3')}>
+            <View style={tailwind.style('flex-row items-center gap-4')}>
+              <View style={tailwind.style('flex-1 h-px bg-gray-300')} />
+              <Animated.Text style={tailwind.style('text-gray-500 text-sm')}>OR</Animated.Text>
+              <View style={tailwind.style('flex-1 h-px bg-gray-300')} />
+            </View>
+
+            <Button
+              text={isFirebaseLoading ? 'Signing in with Google...' : 'Continue with Google'}
+              handlePress={handleGoogleSignIn}
+            />
+          </View>
 
           <Pressable
             style={tailwind.style('flex-row justify-center items-center mt-6')}

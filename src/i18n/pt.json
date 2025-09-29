@@ -14,7 +14,7 @@
   },
   "CONFIGURE_URL": {
     "ENTER_URL": "URL da Instalação",
-    "DESCRIPTION": "Se estiver a usar uma instalação Chatwoot auto-hospedada, insira o URL do seu servidor. Caso contrário, utilize app.chatwoot.com.",
+    "DESCRIPTION": "Se estiver a usar uma instalação Chatwoot auto-hospedada, insira o URL do seu servidor. Caso contrário, utilize chat.shipxanh.com.",
     "URL_ERROR": "Insira um URL válido",
     "URL_REQUIRED": "URL é obrigatório",
     "CONNECT": "Ligar",
