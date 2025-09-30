@@ -19,7 +19,7 @@ const shouldLoadDebugger = __DEV__ && !process.env.JEST_WORKER_ID;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const reactotronInstance = shouldLoadDebugger ? require('../../ReactotronConfig').default : null;
 
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 const persistConfig = {
   key: 'Root',

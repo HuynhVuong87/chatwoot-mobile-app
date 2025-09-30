@@ -33,7 +33,7 @@ const createAuthThunk = <TResponse, TPayload>(
 };
 export const authActions = {
   login: createAuthThunk<LoginResponse | MfaRequiredResponse, LoginPayload>(
-    'auth/login',
+    'auth/sign_in',
     AuthService.login,
     I18n.t('ERRORS.AUTH'),
   ),

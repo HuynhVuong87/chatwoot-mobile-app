@@ -1,18 +1,12 @@
 import React, { useEffect } from 'react';
 import { Provider } from 'react-redux';
-import { Alert, BackHandler, LogBox } from 'react-native';
+import { Alert, BackHandler } from 'react-native';
 import { PersistGate } from 'redux-persist/integration/react';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { store, persistor } from './store';
 import { AppNavigator } from '@/navigation';
 
 import i18n from '@/i18n';
-
-// Suppress Firebase deprecation warnings during migration period
-LogBox.ignoreLogs([
-  'This method is deprecated (as well as all React Native Firebase namespaced API)',
-  'Please use `getApp()` instead',
-]);
 
 const Chatwoot = () => {
   useEffect(() => {

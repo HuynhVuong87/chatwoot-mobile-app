@@ -7,7 +7,6 @@ import {
   onNotificationOpenedApp,
   FirebaseMessagingTypes,
 } from '@react-native-firebase/messaging';
-import { getApp } from '@react-native-firebase/app';
 import { getStateFromPath } from '@react-navigation/native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useFonts } from 'expo-font';
@@ -33,7 +32,7 @@ import Inter58024 from '@/assets/fonts/Inter-580-24.ttf';
 import Inter60020 from '@/assets/fonts/Inter-600-20.ttf';
 
 setBackgroundMessageHandler(
-  getMessaging(getApp()),
+  getMessaging(),
   async (remoteMessage: FirebaseMessagingTypes.RemoteMessage) => {
     console.log('Message handled in the background!', remoteMessage);
   },
@@ -109,7 +108,7 @@ export const AppNavigationContainer = () => {
       }
 
       // getInitialNotification: When the application is opened from a quit state.
-      const message = await getInitialNotification(getMessaging(getApp()));
+      const message = await getInitialNotification(getMessaging());
       if (message) {
         const notification = findNotificationFromFCM({ message });
         const camelCaseNotification = transformNotification(notification);
@@ -131,7 +130,7 @@ export const AppNavigationContainer = () => {
 
       //onNotificationOpenedApp: When the application is running, but in the background.
       const unsubscribeNotification = onNotificationOpenedApp(
-        getMessaging(getApp()),
+        getMessaging(),
         (message: FirebaseMessagingTypes.RemoteMessage) => {
           if (message) {
             const notification = findNotificationFromFCM({ message });

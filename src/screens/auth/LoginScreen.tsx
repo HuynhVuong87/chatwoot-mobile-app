@@ -8,8 +8,7 @@ import {
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAuth } from '@react-native-firebase/auth';
-import { getApp } from '@react-native-firebase/app';
+import { getAuth, getIdToken } from '@react-native-firebase/auth';
 
 import { EMAIL_REGEX } from '@/constants';
 import { EyeIcon, EyeSlash } from '@/svg-icons';
@@ -35,6 +34,9 @@ import {
 import { selectIsLoggingIn } from '@/store/auth/authSelectors';
 import { setLocale } from '@/store/settings/settingsSlice';
 import { useRefsContext } from '@/context/RefsContext';
+import { useRequest } from 'ahooks';
+import { apiService } from '../../services/APIService';
+import { getApp } from '@react-native-firebase/app';
 
 type FormData = {
   email: string;
@@ -87,6 +89,34 @@ const LoginScreen = () => {
     }
   }, [installationUrl, navigation, dispatch]);
 
+  const { runAsync: handleSSO } = useRequest(
+    async (idToken: string) => {
+      const res = await apiService
+        .get<{
+          data: string;
+        }>(`https://chat-api.shipxanh.com/chat/auth/sso`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        })
+        .catch(err => {
+          console.log(err.response);
+          throw err;
+        });
+      const url = res.data.data;
+      console.log('url', url);
+
+      const match = url.match(/[?&]sso_auth_token=([^&]+)/);
+      if (match) {
+        const tokenSSO = match[1];
+        return tokenSSO;
+      } else throw 'Token not found';
+    },
+    {
+      manual: true,
+    },
+  );
+
   const handleFirebaseAuthSuccess = async (firebaseUser: {
     email: string | null;
     uid: string;
@@ -100,27 +130,12 @@ const LoginScreen = () => {
         throw new Error('No current user found');
       }
 
-      const idToken = await currentUser.getIdToken();
+      const idToken = await getIdToken(currentUser, true);
+      console.log('idToken', idToken);
 
-      // Alert Firebase token for debugging/testing
-      Alert.alert(
-        'Firebase Auth Success',
-        `User: ${firebaseUser.email}\nUID: ${firebaseUser.uid}\nToken: ${idToken.substring(0, 50)}...`,
-        [
-          {
-            text: 'Copy Token',
-            onPress: () => {
-              // If you have clipboard library, you can copy the token
-              console.log('Full Firebase ID Token:', idToken);
-            },
-          },
-          { text: 'Continue', style: 'default' },
-        ],
-      );
-
-      // Continue with backend authentication
-      return idToken;
-    } catch (error) {
+      return await handleSSO(idToken);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
       console.error('Error getting Firebase token:', error);
       Alert.alert('Error', 'Failed to get Firebase token');
       return null;
@@ -136,10 +151,10 @@ const LoginScreen = () => {
       const firebaseResult = await signInWithEmailAndPassword(email, password);
 
       if (firebaseResult.user) {
-        // Handle Firebase auth success and get token
-        const idToken = await handleFirebaseAuthSuccess(firebaseResult.user);
+        // Handle Firebase auth success and get SSO token
+        const tokenSSO = await handleFirebaseAuthSuccess(firebaseResult.user);
 
-        if (!idToken) {
+        if (!tokenSSO) {
           return; // Exit if token retrieval failed
         }
 
@@ -148,9 +163,12 @@ const LoginScreen = () => {
         dispatch(resetAuth());
 
         try {
-          // Try to login with your existing backend using the same credentials
-          // This maintains compatibility with your existing system
-          const result = await dispatch(authActions.login({ email, password })).unwrap();
+          // Use tokenSSO as password for backend authentication
+          const result = await dispatch(
+            authActions.login({ email, sso_auth_token: tokenSSO }),
+          ).unwrap();
+
+          console.log('🔍 Debug - Login result:', result);
 
           // Check if MFA is required in the response
           if ('mfa_required' in result && result.mfa_required) {
@@ -160,12 +178,11 @@ const LoginScreen = () => {
           // If MFA not required, the auth state will be updated and
           // the app will automatically navigate to the dashboard
         } catch (backendError) {
-          // Backend login failed, but Firebase auth succeeded
-          // You can decide how to handle this case
-          console.warn('Backend login failed after Firebase auth:', backendError);
+          // Backend login failed with SSO token
+          console.warn('Backend login failed with SSO token:', backendError);
           Alert.alert(
             'Authentication Error',
-            'Firebase authentication succeeded, but backend authentication failed. Please contact support.',
+            'Firebase authentication succeeded, but backend authentication with SSO token failed. Please contact support.',
           );
         }
       }
@@ -184,14 +201,40 @@ const LoginScreen = () => {
     try {
       const result = await signInWithGoogle();
       if (result.user) {
-        // Handle Firebase auth success and get token
-        const idToken = await handleFirebaseAuthSuccess(result.user);
+        // Handle Firebase auth success and get SSO token
+        const tokenSSO = await handleFirebaseAuthSuccess(result.user);
 
-        if (idToken) {
-          // You might want to create a user in your backend or link accounts
-          // For now, just show success message
-          console.log('Google Sign-In successful with Firebase token');
-          // Navigate to dashboard or handle as needed
+        if (!tokenSSO) {
+          return; // Exit if token retrieval failed
+        }
+
+        // Firebase auth successful, now try to authenticate with your backend
+        // Clear any existing auth state before login
+        dispatch(resetAuth());
+
+        try {
+          // Use tokenSSO for backend authentication with Google user email
+          const email = result.user.email || '';
+          const loginResult = await dispatch(
+            authActions.login({ email, sso_auth_token: tokenSSO }),
+          ).unwrap();
+
+          console.log('🔍 Debug - Google Login result:', loginResult);
+
+          // Check if MFA is required in the response
+          if ('mfa_required' in loginResult && loginResult.mfa_required) {
+            // Navigate directly to MFA screen with the token
+            navigation.navigate('MFAScreen' as never);
+          }
+          // If MFA not required, the auth state will be updated and
+          // the app will automatically navigate to the dashboard
+        } catch (backendError) {
+          // Backend login failed with SSO token
+          console.warn('Backend login failed with SSO token (Google):', backendError);
+          Alert.alert(
+            'Authentication Error',
+            'Google authentication succeeded, but backend authentication with SSO token failed. Please contact support.',
+          );
         }
       }
     } catch (error) {
@@ -225,10 +268,6 @@ const LoginScreen = () => {
     );
   };
 
-  const openConfigInstallationURL = () => {
-    navigation.navigate('ConfigureURL' as never);
-  };
-
   const onChangeLanguage = (locale: string) => {
     dispatch(setLocale(locale));
   };
@@ -247,7 +286,7 @@ const LoginScreen = () => {
           <Image
             // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
             source={require('@/assets/images/logo.png')}
-            style={tailwind.style('w-10 h-10')}
+            style={tailwind.style('w-20 h-20')}
             resizeMode="contain"
           />
           <View style={tailwind.style('pt-6 gap-4')}>
@@ -369,18 +408,12 @@ const LoginScreen = () => {
             </View>
 
             <Button
-              text={isFirebaseLoading ? 'Signing in with Google...' : 'Continue with Google'}
+              text={isFirebaseLoading ? 'Google...' : 'Google+'}
               handlePress={handleGoogleSignIn}
+              variant="red"
             />
           </View>
 
-          <Pressable
-            style={tailwind.style('flex-row justify-center items-center mt-6')}
-            onPress={openConfigInstallationURL}>
-            <Animated.Text style={tailwind.style('text-sm text-gray-900')}>
-              {i18n.t('LOGIN.CHANGE_URL')}
-            </Animated.Text>
-          </Pressable>
           <Pressable
             style={tailwind.style('flex-row justify-center items-center mt-4')}
             onPress={() => languagesModalSheetRef.current?.present()}>

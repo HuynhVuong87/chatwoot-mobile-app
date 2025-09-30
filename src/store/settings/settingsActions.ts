@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import * as Sentry from '@sentry/react-native';
 
-import messaging from '@react-native-firebase/messaging';
+import messaging, { getToken, hasPermission } from '@react-native-firebase/messaging';
 import { Platform, PermissionsAndroid } from 'react-native';
 import {
   getSystemName,
@@ -89,7 +89,7 @@ export const settingsActions = {
     'settings/saveDeviceDetails',
     async (_, { rejectWithValue }) => {
       try {
-        const permissionEnabled = await messaging().hasPermission();
+        const permissionEnabled = await hasPermission(messaging());
         const deviceId = await getUniqueId();
         const devicePlatform = getSystemName();
         const manufacturer = await getManufacturer();
@@ -112,7 +112,7 @@ export const settingsActions = {
         // https://github.com/invertase/react-native-firebase/issues/6893#issuecomment-1427998691
         // await messaging().registerDeviceForRemoteMessages();
         await sleep(1000);
-        const fcmToken = await messaging().getToken();
+        const fcmToken = await getToken(messaging());
 
         const pushData: PushPayload = {
           subscription_type: 'fcm',

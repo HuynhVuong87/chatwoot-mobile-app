@@ -16,7 +16,7 @@
       },
       "ios": {
         "buildConfiguration": "Release",
-        "distribution": "internal"
+        "distribution": "store"
       }
     },
     "preview": {

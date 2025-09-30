@@ -9,7 +9,6 @@ import {
   GoogleAuthProvider,
   getAuth,
 } from '@react-native-firebase/auth';
-import { getApp } from '@react-native-firebase/app';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 export interface FirebaseAuthUser {
@@ -41,7 +40,7 @@ class FirebaseAuthService {
    */
   async signInWithEmailAndPassword(email: string, password: string): Promise<FirebaseLoginResult> {
     try {
-      const userCredential = await signInWithEmailAndPassword(getAuth(getApp()), email, password);
+      const userCredential = await signInWithEmailAndPassword(getAuth(), email, password);
       return this.mapUserCredentialToResult(userCredential);
     } catch (error) {
       throw this.mapFirebaseError(error);
@@ -56,11 +55,7 @@ class FirebaseAuthService {
     password: string,
   ): Promise<FirebaseLoginResult> {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        getAuth(getApp()),
-        email,
-        password,
-      );
+      const userCredential = await createUserWithEmailAndPassword(getAuth(), email, password);
       return this.mapUserCredentialToResult(userCredential);
     } catch (error) {
       throw this.mapFirebaseError(error);
@@ -86,7 +81,7 @@ class FirebaseAuthService {
       const googleCredential = GoogleAuthProvider.credential(idToken);
 
       // Sign-in the user with the credential
-      const userCredential = await signInWithCredential(getAuth(getApp()), googleCredential);
+      const userCredential = await signInWithCredential(getAuth(), googleCredential);
       return this.mapUserCredentialToResult(userCredential);
     } catch (error) {
       throw this.mapFirebaseError(error);
@@ -98,7 +93,7 @@ class FirebaseAuthService {
    */
   async sendPasswordResetEmail(email: string): Promise<void> {
     try {
-      await sendPasswordResetEmail(getAuth(getApp()), email);
+      await sendPasswordResetEmail(getAuth(), email);
     } catch (error) {
       throw this.mapFirebaseError(error);
     }
@@ -109,7 +104,7 @@ class FirebaseAuthService {
    */
   async signOut(): Promise<void> {
     try {
-      await signOut(getAuth(getApp()));
+      await signOut(getAuth());
       // Also sign out from Google if signed in
       await GoogleSignin.signOut();
     } catch (error) {
@@ -121,7 +116,7 @@ class FirebaseAuthService {
    * Get current user
    */
   getCurrentUser(): FirebaseAuthUser | null {
-    const user = getAuth(getApp()).currentUser;
+    const user = getAuth().currentUser;
     return user ? this.mapFirebaseUserToAuthUser(user) : null;
   }
 
@@ -129,7 +124,7 @@ class FirebaseAuthService {
    * Listen to auth state changes
    */
   onAuthStateChanged(callback: (user: FirebaseAuthUser | null) => void): () => void {
-    return onAuthStateChanged(getAuth(getApp()), user => {
+    return onAuthStateChanged(getAuth(), user => {
       callback(user ? this.mapFirebaseUserToAuthUser(user) : null);
     });
   }
@@ -138,7 +133,7 @@ class FirebaseAuthService {
    * Update user profile
    */
   async updateProfile(profile: { displayName?: string; photoURL?: string }): Promise<void> {
-    const user = getAuth(getApp()).currentUser;
+    const user = getAuth().currentUser;
     if (!user) {
       throw new Error('No authenticated user');
     }
@@ -154,7 +149,7 @@ class FirebaseAuthService {
    * Send email verification
    */
   async sendEmailVerification(): Promise<void> {
-    const user = getAuth(getApp()).currentUser;
+    const user = getAuth().currentUser;
     if (!user) {
       throw new Error('No authenticated user');
     }

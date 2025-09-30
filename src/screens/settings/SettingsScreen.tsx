@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { StatusBar, Text, Platform, Pressable } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { StatusBar, Text, Platform, Pressable, Linking } from 'react-native';
 import Animated from 'react-native-reanimated';
 // import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,11 +12,10 @@ import {
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import DeviceInfo from 'react-native-device-info';
-import * as WebBrowser from 'expo-web-browser';
 import ChatWootWidget from '@chatwoot/react-native-widget';
 import { useSelector } from 'react-redux';
 import * as Application from 'expo-application';
-import { Account, AvailabilityStatus } from '@/types';
+import { AvailabilityStatus } from '@/types';
 import { clearAllConversations } from '@/store/conversation/conversationSlice';
 import { resetNotifications } from '@/store/notification/notificationSlice';
 import { clearAllContacts } from '@/store/contact/contactSlice';
@@ -63,8 +62,6 @@ import { setLocale } from '@/store/settings/settingsSlice';
 
 import AnalyticsHelper from '@/utils/analyticsUtils';
 import { PROFILE_EVENTS } from '@/constants/analyticsEvents';
-import { getUserPermissions } from '@/utils/permissionUtils';
-import { CONVERSATION_PERMISSIONS } from '@/constants/permissions';
 import { useAppDispatch, useAppSelector } from '@/hooks';
 
 const appName = Application.applicationName;
@@ -97,12 +94,6 @@ const SettingsScreen = () => {
 
   const pushToken = useAppSelector(selectPushToken);
 
-  const userPermissions = getUserPermissions(user, activeAccountId);
-
-  const hasConversationPermission = CONVERSATION_PERMISSIONS.some(permission =>
-    userPermissions.includes(permission),
-  );
-
   const userDetails = {
     identifier: email,
     name,
@@ -126,11 +117,11 @@ const SettingsScreen = () => {
 
   const accounts = useSelector(selectAccounts) || [];
 
-  const activeAccountName = accounts.length
-    ? accounts.find((account: Account) => account.id === activeAccountId)?.name || ''
-    : '';
+  // const activeAccountName = accounts.length
+  //   ? accounts.find((account: Account) => account.id === activeAccountId)?.name || ''
+  //   : '';
 
-  const enableAccountSwitch = accounts.length > 1;
+  // const enableAccountSwitch = accounts.length > 1;
 
   const activeLocale = useSelector(selectLocale);
   const {
@@ -193,7 +184,7 @@ const SettingsScreen = () => {
   }, [activeLocale]);
 
   const openURL = async () => {
-    await WebBrowser.openBrowserAsync(HELP_URL);
+    await Linking.openURL(HELP_URL);
   };
 
   // const openSystemSettings = () => {
@@ -225,7 +216,6 @@ const SettingsScreen = () => {
       icon: <NotificationIcon />,
       subtitle: '',
       subtitleType: 'light',
-      disabled: !hasConversationPermission,
       onPressListItem: () => notificationPreferencesSheetRef.current?.present(),
       // onPressListItem: openSystemSettings,
     },
@@ -237,36 +227,28 @@ const SettingsScreen = () => {
       subtitleType: 'light',
       onPressListItem: () => languagesModalSheetRef.current?.present(),
     },
-    {
-      hasChevron: enableAccountSwitch,
-      title: i18n.t('SETTINGS.SWITCH_ACCOUNT'),
-      icon: <SwitchIcon />,
-      subtitle: activeAccountName,
-      subtitleType: 'light',
-      onPressListItem: () => {
-        if (enableAccountSwitch) {
-          switchAccountSheetRef.current?.present();
-        }
-      },
-    },
+    // {
+    //   hasChevron: enableAccountSwitch,
+    //   title: i18n.t('SETTINGS.SWITCH_ACCOUNT'),
+    //   icon: <SwitchIcon />,
+    //   subtitle: activeAccountName,
+    //   subtitleType: 'light',
+    //   onPressListItem: () => {
+    //     if (enableAccountSwitch) {
+    //       switchAccountSheetRef.current?.present();
+    //     }
+    //   },
+    // },
   ];
 
   const supportList: GenericListType[] = [
-    {
-      hasChevron: true,
-      title: i18n.t('SETTINGS.READ_DOCS'),
-      icon: <SwitchIcon />,
-      subtitle: '',
-      subtitleType: 'light',
-      onPressListItem: openURL,
-    },
     {
       hasChevron: true,
       title: i18n.t('SETTINGS.CHAT_WITH_US'),
       icon: <ChatwootIcon />,
       subtitle: '',
       subtitleType: 'light',
-      onPressListItem: () => toggleWidget(true),
+      onPressListItem: openURL,
     },
   ];
 

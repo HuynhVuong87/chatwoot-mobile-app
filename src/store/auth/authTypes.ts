@@ -7,7 +7,7 @@ export interface AuthHeaders {
 }
 export interface LoginPayload {
   email: string;
-  password: string;
+  sso_auth_token: string;
 }
 export interface LoginResponse {
   user: User;
