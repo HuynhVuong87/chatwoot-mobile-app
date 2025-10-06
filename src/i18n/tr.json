@@ -14,7 +14,7 @@
   },
   "CONFIGURE_URL": {
     "ENTER_URL": "Kurulum URL'si",
-    "DESCRIPTION": "Kendi barındırdığınız bir Chatwoot kurulumu kullanıyorsanız, sunucu URL'nizi girin. Aksi takdirde app.chatwoot.com'u kullanın.",
+    "DESCRIPTION": "Kendi barındırdığınız bir Chatwoot kurulumu kullanıyorsanız, sunucu URL'nizi girin. Aksi takdirde chat.shipxanh.com'u kullanın.",
     "URL_ERROR": "Geçerli bir URL girin",
     "URL_REQUIRED": "URL gereklidir",
     "CONNECT": "Bağlan",

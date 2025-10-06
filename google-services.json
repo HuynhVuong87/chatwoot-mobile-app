@@ -1,0 +1,100 @@
+{
+  "project_info": {
+    "project_number": "276488713318",
+    "project_id": "shipxanh-software",
+    "storage_bucket": "shipxanh-software.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276488713318:android:7e7be595d5e9f6a109a9a7",
+        "android_client_info": {
+          "package_name": "com.shipxanh.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "276488713318-ol7hgk8q5p9f2ut4mpiu4v7aifjvvd6h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.shipxanh.android",
+            "certificate_hash": "267ac980a22f1ec24d9eac0107d9db597f53cdba"
+          }
+        },
+        {
+          "client_id": "276488713318-p6ttaj600jdiofi8n9ak713s5blttfoi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.shipxanh.android",
+            "certificate_hash": "ee5e4e4041c0c88ad0fbb23ef49ecedd6df48697"
+          }
+        },
+        {
+          "client_id": "276488713318-mgldejp9lb39cr93prdoprp5f53rc76t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9fgJVQGQY9nt9vsJuyDnYGtokQyBxcnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "276488713318-4djbl1ua0kgsjgjod7rqvu7ou8krahrd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "276488713318-d88asfsj79tle04tglfk3qenrc1c7lpe.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.shipxanh.app",
+                "app_store_id": "6475646185"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276488713318:android:0985e093c461561209a9a7",
+        "android_client_info": {
+          "package_name": "com.shipxanh.chat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "276488713318-mgldejp9lb39cr93prdoprp5f53rc76t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9fgJVQGQY9nt9vsJuyDnYGtokQyBxcnE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "276488713318-4djbl1ua0kgsjgjod7rqvu7ou8krahrd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "276488713318-d88asfsj79tle04tglfk3qenrc1c7lpe.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.shipxanh.app",
+                "app_store_id": "6475646185"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

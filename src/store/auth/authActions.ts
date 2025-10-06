@@ -3,6 +3,8 @@ import { AuthService } from './authService';
 import type {
   LoginPayload,
   LoginResponse,
+  MfaRequiredResponse,
+  MfaVerificationPayload,
   ResetPasswordPayload,
   ResetPasswordResponse,
   AvailabilityPayload,
@@ -30,9 +32,15 @@ const createAuthThunk = <TResponse, TPayload>(
   );
 };
 export const authActions = {
-  login: createAuthThunk<LoginResponse, LoginPayload>(
-    'auth/login',
+  login: createAuthThunk<LoginResponse | MfaRequiredResponse, LoginPayload>(
+    'auth/sign_in',
     AuthService.login,
+    I18n.t('ERRORS.AUTH'),
+  ),
+
+  verifyMfa: createAuthThunk<LoginResponse, MfaVerificationPayload>(
+    'auth/verifyMfa',
+    AuthService.verifyMfa,
     I18n.t('ERRORS.AUTH'),
   ),
 

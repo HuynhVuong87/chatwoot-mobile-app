@@ -16,9 +16,6 @@ import {
 } from '@/store/auth/authSelectors';
 import { selectWebSocketUrl } from '@/store/settings/settingsSelectors';
 
-import { getUserPermissions } from '@/utils/permissionUtils';
-import { CONVERSATION_PERMISSIONS } from 'constants/permissions';
-
 import { AuthStack, ConversationStack, SettingsStack, InboxStack } from '../stack';
 import ChatScreen from '@/screens/chat-screen/ChatScreen';
 import ContactDetailsScreen from '@/screens/contact-details/ContactDetailsScreen';
@@ -131,12 +128,13 @@ const Tabs = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installationUrl]);
 
-  const userPermissions = user ? getUserPermissions(user, user.account_id) : [];
-
   // Checking if user has conversation permission to show inbox and conversations tabs
-  const hasConversationPermission = CONVERSATION_PERMISSIONS.some(permission =>
-    userPermissions.includes(permission),
-  );
+  // const hasConversationPermission = CONVERSATION_PERMISSIONS.some(permission =>
+  //   userPermissions.includes(permission),
+  // );
+
+  // Force enable all tabs - bypass permission check
+  const hasConversationPermission = true;
 
   const checkAppVersion = useCallback(async () => {
     if (chatwootVersion) {
@@ -148,12 +146,14 @@ const Tabs = () => {
   }, [chatwootVersion, currentAccountRole]);
 
   useEffect(() => {
-    checkAppVersion();
+    if (__DEV__) {
+      checkAppVersion();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <Tab.Navigator tabBar={CustomTabBar} initialRouteName="Inbox">
+    <Tab.Navigator tabBar={CustomTabBar} initialRouteName="Conversations">
       {hasConversationPermission && (
         <Tab.Screen name="Inbox" component={InboxStack} options={{ headerShown: false }} />
       )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Animated, Image, Pressable, StatusBar, TextInput, View } from 'react-native';
+import { Animated, Image, Pressable, StatusBar, TextInput, View, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
   BottomSheetModal,
@@ -8,6 +8,7 @@ import {
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getAuth, getIdToken } from '@react-native-firebase/auth';
 
 import { EMAIL_REGEX } from '@/constants';
 import { EyeIcon, EyeSlash } from '@/svg-icons';
@@ -16,6 +17,7 @@ import i18n from '@/i18n';
 import { resetAuth } from '@/store/auth/authSlice';
 import { authActions } from '@/store/auth/authActions';
 import { useAppDispatch, useAppSelector } from '@/hooks';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 
 import {
   BottomSheetBackdrop,
@@ -32,6 +34,9 @@ import {
 import { selectIsLoggingIn } from '@/store/auth/authSelectors';
 import { setLocale } from '@/store/settings/settingsSlice';
 import { useRefsContext } from '@/context/RefsContext';
+import { useRequest } from 'ahooks';
+import { apiService } from '../../services/APIService';
+import { getApp } from '@react-native-firebase/app';
 
 type FormData = {
   email: string;
@@ -41,6 +46,7 @@ type FormData = {
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [showPassword, setShowPassword] = useState(false);
+  const [isFirebaseLoading, setIsFirebaseLoading] = useState(false);
   const {
     control,
     handleSubmit,
@@ -62,6 +68,8 @@ const LoginScreen = () => {
 
   const dispatch = useAppDispatch();
   const isLoggingIn = useAppSelector(selectIsLoggingIn);
+  const { signInWithEmailAndPassword, signInWithGoogle, sendPasswordResetEmail } =
+    useFirebaseAuth();
 
   const installationUrl = useAppSelector(selectInstallationUrl);
   const baseUrl = useAppSelector(selectBaseUrl);
@@ -81,17 +89,183 @@ const LoginScreen = () => {
     }
   }, [installationUrl, navigation, dispatch]);
 
+  const { runAsync: handleSSO } = useRequest(
+    async (idToken: string) => {
+      const res = await apiService
+        .get<{
+          data: string;
+        }>(`https://chat-api.shipxanh.com/chat/auth/sso`, {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        })
+        .catch(err => {
+          console.log(err.response);
+          throw err;
+        });
+      const url = res.data.data;
+      console.log('url', url);
+
+      const match = url.match(/[?&]sso_auth_token=([^&]+)/);
+      if (match) {
+        const tokenSSO = match[1];
+        return tokenSSO;
+      } else throw 'Token not found';
+    },
+    {
+      manual: true,
+    },
+  );
+
+  const handleFirebaseAuthSuccess = async (firebaseUser: {
+    email: string | null;
+    uid: string;
+    displayName: string | null;
+    emailVerified: boolean;
+  }) => {
+    try {
+      // Get Firebase ID token from current user
+      const currentUser = getAuth(getApp()).currentUser;
+      if (!currentUser) {
+        throw new Error('No current user found');
+      }
+
+      const idToken = await getIdToken(currentUser, true);
+      console.log('idToken', idToken);
+
+      return await handleSSO(idToken);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error('Error getting Firebase token:', error);
+      Alert.alert('Error', 'Failed to get Firebase token');
+      return null;
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     const { email, password } = data;
-    dispatch(authActions.login({ email, password }));
+    setIsFirebaseLoading(true);
+
+    try {
+      // Try Firebase Auth first
+      const firebaseResult = await signInWithEmailAndPassword(email, password);
+
+      if (firebaseResult.user) {
+        // Handle Firebase auth success and get SSO token
+        const tokenSSO = await handleFirebaseAuthSuccess(firebaseResult.user);
+
+        if (!tokenSSO) {
+          return; // Exit if token retrieval failed
+        }
+
+        // Firebase auth successful, now try to authenticate with your backend
+        // Clear any existing auth state before login
+        dispatch(resetAuth());
+
+        try {
+          // Use tokenSSO as password for backend authentication
+          const result = await dispatch(
+            authActions.login({ email, sso_auth_token: tokenSSO }),
+          ).unwrap();
+
+          console.log('🔍 Debug - Login result:', result);
+
+          // Check if MFA is required in the response
+          if ('mfa_required' in result && result.mfa_required) {
+            // Navigate directly to MFA screen with the token
+            navigation.navigate('MFAScreen' as never);
+          }
+          // If MFA not required, the auth state will be updated and
+          // the app will automatically navigate to the dashboard
+        } catch (backendError) {
+          // Backend login failed with SSO token
+          console.warn('Backend login failed with SSO token:', backendError);
+          Alert.alert(
+            'Authentication Error',
+            'Firebase authentication succeeded, but backend authentication with SSO token failed. Please contact support.',
+          );
+        }
+      }
+    } catch (error) {
+      // Firebase auth failed
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to authenticate with Firebase';
+      Alert.alert('Login Failed', errorMessage);
+    } finally {
+      setIsFirebaseLoading(false);
+    }
   };
 
-  const openResetPassword = () => {
-    navigation.navigate('ResetPassword' as never);
+  const handleGoogleSignIn = async () => {
+    setIsFirebaseLoading(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result.user) {
+        // Handle Firebase auth success and get SSO token
+        const tokenSSO = await handleFirebaseAuthSuccess(result.user);
+
+        if (!tokenSSO) {
+          return; // Exit if token retrieval failed
+        }
+
+        // Firebase auth successful, now try to authenticate with your backend
+        // Clear any existing auth state before login
+        dispatch(resetAuth());
+
+        try {
+          // Use tokenSSO for backend authentication with Google user email
+          const email = result.user.email || '';
+          const loginResult = await dispatch(
+            authActions.login({ email, sso_auth_token: tokenSSO }),
+          ).unwrap();
+
+          console.log('🔍 Debug - Google Login result:', loginResult);
+
+          // Check if MFA is required in the response
+          if ('mfa_required' in loginResult && loginResult.mfa_required) {
+            // Navigate directly to MFA screen with the token
+            navigation.navigate('MFAScreen' as never);
+          }
+          // If MFA not required, the auth state will be updated and
+          // the app will automatically navigate to the dashboard
+        } catch (backendError) {
+          // Backend login failed with SSO token
+          console.warn('Backend login failed with SSO token (Google):', backendError);
+          Alert.alert(
+            'Authentication Error',
+            'Google authentication succeeded, but backend authentication with SSO token failed. Please contact support.',
+          );
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      Alert.alert('Google Sign-In Failed', errorMessage);
+    } finally {
+      setIsFirebaseLoading(false);
+    }
   };
 
-  const openConfigInstallationURL = () => {
-    navigation.navigate('ConfigureURL' as never);
+  const handleForgotPassword = async () => {
+    // Get email from form or show input dialog
+    Alert.prompt(
+      'Reset Password',
+      'Enter your email address to receive password reset instructions:',
+      async email => {
+        if (email && EMAIL_REGEX.test(email)) {
+          try {
+            await sendPasswordResetEmail(email);
+            Alert.alert('Success', 'Password reset email sent! Check your inbox.');
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : 'Failed to send password reset email';
+            Alert.alert('Error', errorMessage);
+          }
+        } else {
+          Alert.alert('Invalid Email', 'Please enter a valid email address');
+        }
+      },
+      'plain-text',
+    );
   };
 
   const onChangeLanguage = (locale: string) => {
@@ -112,7 +286,7 @@ const LoginScreen = () => {
           <Image
             // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
             source={require('@/assets/images/logo.png')}
-            style={tailwind.style('w-10 h-10')}
+            style={tailwind.style('w-20 h-20')}
             resizeMode="contain"
           />
           <View style={tailwind.style('pt-6 gap-4')}>
@@ -211,24 +385,35 @@ const LoginScreen = () => {
             name="password"
           />
 
-          <Pressable style={tailwind.style('pt-1 mb-8')} onPress={openResetPassword}>
+          <Pressable style={tailwind.style('pt-1 mb-4')} onPress={handleForgotPassword}>
             <Animated.Text style={tailwind.style('text-blue-800 font-inter-medium-24 text-right')}>
               {i18n.t('LOGIN.FORGOT_PASSWORD')}
             </Animated.Text>
           </Pressable>
 
           <Button
-            text={isLoggingIn ? i18n.t('LOGIN.LOGIN_LOADING') : i18n.t('LOGIN.LOGIN')}
+            text={
+              isLoggingIn || isFirebaseLoading
+                ? i18n.t('LOGIN.LOGIN_LOADING')
+                : i18n.t('LOGIN.LOGIN')
+            }
             handlePress={handleSubmit(onSubmit)}
           />
 
-          <Pressable
-            style={tailwind.style('flex-row justify-center items-center mt-6')}
-            onPress={openConfigInstallationURL}>
-            <Animated.Text style={tailwind.style('text-sm text-gray-900')}>
-              {i18n.t('LOGIN.CHANGE_URL')}
-            </Animated.Text>
-          </Pressable>
+          <View style={tailwind.style('mt-4 gap-3')}>
+            <View style={tailwind.style('flex-row items-center gap-4')}>
+              <View style={tailwind.style('flex-1 h-px bg-gray-300')} />
+              <Animated.Text style={tailwind.style('text-gray-500 text-sm')}>OR</Animated.Text>
+              <View style={tailwind.style('flex-1 h-px bg-gray-300')} />
+            </View>
+
+            <Button
+              text={isFirebaseLoading ? 'Google...' : 'Google+'}
+              handlePress={handleGoogleSignIn}
+              variant="red"
+            />
+          </View>
+
           <Pressable
             style={tailwind.style('flex-row justify-center items-center mt-4')}
             onPress={() => languagesModalSheetRef.current?.present()}>

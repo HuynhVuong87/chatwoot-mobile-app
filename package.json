@@ -1,6 +1,6 @@
 {
   "name": "@chatwoot/mobile-app",
-  "version": "4.2.0",
+  "version": "4.2.3",
   "scripts": {
     "start": "expo start --dev-client",
     "start:production": "expo start --no-dev --minify",
@@ -45,8 +45,10 @@
     "@react-native-clipboard/clipboard": "^1.6.1",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/netinfo": "^11.4.1",
-    "@react-native-firebase/app": "^21.7.1",
-    "@react-native-firebase/messaging": "^21.7.1",
+    "@react-native-firebase/app": "^23.4.0",
+    "@react-native-firebase/auth": "^23.4.0",
+    "@react-native-firebase/messaging": "^23.4.0",
+    "@react-native-google-signin/google-signin": "13.0.0",
     "@react-native-menu/menu": "^1.2.0",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
@@ -55,6 +57,7 @@
     "@sentry/react-native": "^6.10.0",
     "@shopify/flash-list": "^1.7.3",
     "@types/lodash": "^4.17.9",
+    "ahooks": "^3.9.5",
     "axios": "^1.6.4",
     "camelcase": "^8.0.0",
     "camelcase-keys": "^7.0.2",

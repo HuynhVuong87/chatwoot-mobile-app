@@ -20,14 +20,14 @@ interface SettingsState {
   pushToken: string;
 }
 const initialState: SettingsState = {
-  baseUrl: 'app.chatwoot.com',
-  installationUrl: 'https://app.chatwoot.com/',
+  baseUrl: 'chat.shipxanh.com',
+  installationUrl: 'https://chat.shipxanh.com/',
   uiFlags: {
     isSettingUrl: false,
     isUpdating: false,
     isLocaleSet: false,
   },
-  localeValue: 'en',
+  localeValue: 'vi',
   notificationSettings: {
     account_id: 0,
     all_email_flags: [],
@@ -37,7 +37,7 @@ const initialState: SettingsState = {
     selected_push_flags: [],
     user_id: 0,
   },
-  webSocketUrl: 'wss://app.chatwoot.com/cable',
+  webSocketUrl: 'wss://chat.shipxanh.com/cable',
   theme: 'system',
   version: '',
   pushToken: '',

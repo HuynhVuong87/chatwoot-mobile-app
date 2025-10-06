@@ -9,27 +9,35 @@ type ButtonProps = {
   isDestructive?: boolean;
   text: string;
   handlePress?: () => void;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'red';
   disabled?: boolean;
 };
 
-const getButtonStyles = (isPrimary: boolean, pressed: boolean) => {
+const getButtonStyles = (variant: string, pressed: boolean) => {
   const baseStyles = 'py-[11px] flex items-center justify-center rounded-[13px]';
-  const variantStyles = isPrimary ? 'bg-blue-800' : 'bg-gray-50';
-  const pressedStyles = isPrimary ? 'opacity-95' : pressed ? 'bg-gray-100' : '';
+  let variantStyles = 'bg-gray-50';
+  let pressedStyles = pressed ? 'bg-gray-100' : '';
+
+  if (variant === 'primary') {
+    variantStyles = 'bg-blue-800';
+    pressedStyles = 'opacity-95';
+  } else if (variant === 'red') {
+    variantStyles = 'bg-red-800';
+    pressedStyles = 'opacity-95';
+  }
 
   return tailwind.style(baseStyles, variantStyles, pressedStyles);
 };
 
-const getTextStyles = (isPrimary: boolean, isDestructive: boolean) => {
+const getTextStyles = (variant: string, isDestructive: boolean) => {
   const baseStyles = 'text-base font-medium tracking-[0.16px] leading-[22px]';
-  const colorStyles = isPrimary
-    ? isDestructive
-      ? 'text-tomato-800'
-      : 'text-white'
-    : isDestructive
-      ? 'text-ruby-800'
-      : 'text-gray-950';
+  let colorStyles = 'text-gray-950';
+
+  if (variant === 'primary' || variant === 'red') {
+    colorStyles = isDestructive ? 'text-tomato-800' : 'text-white';
+  } else {
+    colorStyles = isDestructive ? 'text-ruby-800' : 'text-gray-950';
+  }
 
   return tailwind.style(baseStyles, colorStyles);
 };
@@ -51,8 +59,6 @@ export const Button = ({
     }
   }, [disabled, handlePress, haptic]);
 
-  const isPrimary = variant === 'primary';
-
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
@@ -61,9 +67,9 @@ export const Button = ({
         accessible
         accessibilityRole="button"
         accessibilityState={{ disabled }}
-        style={({ pressed }) => getButtonStyles(isPrimary, pressed)}
+        style={({ pressed }) => getButtonStyles(variant, pressed)}
         {...handlers}>
-        <Animated.Text style={getTextStyles(isPrimary, isDestructive)}>{text}</Animated.Text>
+        <Animated.Text style={getTextStyles(variant, isDestructive)}>{text}</Animated.Text>
       </Pressable>
     </Animated.View>
   );

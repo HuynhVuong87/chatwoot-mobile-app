@@ -9,13 +9,28 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "SENTRY_ALLOW_FAILURE": "true"
+      },
+      "ios": {
+        "buildConfiguration": "Release",
+        "distribution": "store"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "buildConfiguration": "Release",
+        "distribution": "internal"
+      }
     }
   },
   "submit": {
     "production": {
       "android": {
-        "track": "internal" // (enum: production, beta, alpha, internal)
+        "track": "production"
       }
     }
   }
