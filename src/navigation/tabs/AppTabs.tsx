@@ -146,7 +146,9 @@ const Tabs = () => {
   }, [chatwootVersion, currentAccountRole]);
 
   useEffect(() => {
-    checkAppVersion();
+    if (__DEV__) {
+      checkAppVersion();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

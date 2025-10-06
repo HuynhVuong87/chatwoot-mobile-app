@@ -113,7 +113,7 @@ const SettingsScreen = () => {
 
   const isChatwootCloud = useAppSelector(selectIsChatwootCloud);
 
-  const chatwootInstance = isChatwootCloud ? `${appName} cloud` : `${appName} self-hosted`;
+  const chatwootInstance = isChatwootCloud ? `${appName}` : `${appName} self-hosted`;
 
   const accounts = useSelector(selectAccounts) || [];
 
