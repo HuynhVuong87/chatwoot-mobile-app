@@ -37,6 +37,7 @@ import { MenuOption, MessageMenu } from '../message-menu';
 import { tailwind } from '@/theme';
 import { Dimensions, View } from 'react-native';
 import { Avatar } from '@/components-next';
+import { CardItemBubble } from '../message-components/CardItemBubble';
 
 // import { ImageMetadata } from '@/types';
 
@@ -366,6 +367,7 @@ export const MessageComponent = (props: MessageComponentProps) => {
   // };
 
   const renderMessageContent = () => {
+
     if (messageType === MESSAGE_TYPES.ACTIVITY) {
       return <ActivityBubble text={item.content} timeStamp={item.createdAt} />;
     }
@@ -373,6 +375,7 @@ export const MessageComponent = (props: MessageComponentProps) => {
     const attachments = item.attachments;
     const isReplyMessage = item.contentAttributes?.inReplyTo;
     const isUnsupported = item.contentAttributes?.isUnsupported;
+    const isItemMarketplace = item.contentAttributes?.items?.some((x) => x.title?.startsWith('###Item:'));
     let messageContent;
 
     if (isUnsupported) {
@@ -388,6 +391,8 @@ export const MessageComponent = (props: MessageComponentProps) => {
     // }
     else if (attachments?.length >= 1 || isReplyMessage) {
       messageContent = <ComposedBubble item={item} variant={variant()} />;
+    } else if (isItemMarketplace) {
+      messageContent = <CardItemBubble item={item} variant={variant()} />;
     } else if (item.content) {
       messageContent = <TextBubble item={item} variant={variant()} />;
     } else {

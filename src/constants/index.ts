@@ -261,6 +261,7 @@ export const MEDIA_TYPES = [
 
 export const CONTENT_TYPES = {
   INCOMING_EMAIL: 'incoming_email',
+  CARDS: 'cards',
 };
 
 export const ORIENTATION = {

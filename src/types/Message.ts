@@ -63,6 +63,7 @@ export type MessageContentAttributes = {
   imageType: string;
   contentType: ContentType;
   isUnsupported: boolean;
+  items: any[];
 };
 
 export interface Message {

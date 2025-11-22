@@ -16,6 +16,7 @@ import { MAXIMUM_FILE_UPLOAD_SIZE } from '@/constants';
 import i18n from '@/i18n';
 import { showToast } from '@/utils/toastUtils';
 import { findFileSize } from '@/utils/fileUtils';
+import { ShoppingCartIcon } from '../../../../svg-icons/attachments/ShoppingCart';
 
 export const handleOpenPhotosLibrary = async dispatch => {
   const pickedAssets = await launchImageLibrary({
@@ -29,7 +30,7 @@ export const handleOpenPhotosLibrary = async dispatch => {
     Alert.alert(
       'Permission Denied',
       pickedAssets.errorMessage ||
-        'The permission to access the photo library has been denied and cannot be requested again. Please enable it in your device settings if you wish to access photos from your library.',
+      'The permission to access the photo library has been denied and cannot be requested again. Please enable it in your device settings if you wish to access photos from your library.',
       [
         {
           text: 'Cancel',
@@ -145,6 +146,12 @@ const handleAttachFile = async dispatch => {
 
 const ADD_MENU_OPTIONS = [
   {
+    icon: <ShoppingCartIcon />,
+    title: 'Products',
+    handlePress: () => { },
+  },
+
+  {
     icon: <PhotosIcon />,
     title: 'Photos',
     handlePress: handleOpenPhotosLibrary,
@@ -162,7 +169,7 @@ const ADD_MENU_OPTIONS = [
   {
     icon: <MacrosIcon />,
     title: 'Macros',
-    handlePress: () => {},
+    handlePress: () => { },
   },
 ];
 
@@ -217,10 +224,7 @@ const MenuOption = (props: MenuOptionProps) => {
 
 export const CommandOptionsMenu = () => {
   const { bottom } = useSafeAreaInsets();
-  const isAndroid = Platform.OS === 'android';
-  const containerHeight = isAndroid
-    ? 210 + (bottom === 0 ? 16 : bottom)
-    : 175 + (bottom === 0 ? 16 : bottom);
+  const containerHeight = 210 + (bottom === 0 ? 16 : bottom)
   return (
     <Animated.View
       entering={SlideInDown.springify().damping(38).stiffness(240)}
